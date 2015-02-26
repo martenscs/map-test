@@ -141,7 +141,13 @@
         }
       });
 
+      var clusterStrategy = new ALKMaps.Strategy.Cluster({
+        distance: 50,
+        threshold: 5
+      });
+
       vehicleLayer = new ALKMaps.Layer.Vector('Vehicle Layer', {
+        strategies: [clusterStrategy],
         styleMap: new ALKMaps.StyleMap({
           default: vehiclePointStyle,
           select: vehiclePointStyle
