@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Birst Map</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #alkmap {
+      width:100%;
+      height:600px;
+      min-height: 100%;
+      border:1px solid #EEEEEE;
+    }
+    #button {
+      position: absolute;
+      top:50px;
+      left:50px;
+      z-index: 1100;
+      background-color: #EEEEEE;
+    }
+    .btn {
+      margin: 10px;
+      padding: 10px;
+      background-color: #ffff00;
+      cursor: pointer;
+    }
+  </style>
+  <script src="http://maps.alk.com/api/1.2/alkmaps.js" type="text/javascript"></script>
+  <script type="text/javascript">
+
+    /**************************************************/
+    /*                                                */
+    /* enter the json structure for the vehicles here */
+    /*                                                */
+    /**************************************************/
+
+    var vehicleData = {
+      "records": [
+        {
+          "vehicleId": 84187,
+          "location": {
+            "longitude": -83.5272296,
+            "latitude": 41.7127935
+          },
+          "heading": "WEST",
+          "number": "D716"
+        },
+        {
+          "vehicleId": 84188,
+          "location": {
+            "longitude": -86.2217911,
+            "latitude": 39.7471778
+          },
+          "heading": "WEST",
+          "number": "D1219"
+        },
+        {
+          "vehicleId": 84209,
+          "location": {
+            "longitude": -80.1110879,
+            "latitude": 40.7432928
+          },
+          "heading": "SOUTHWEST",
+          "number": "D1339"
+        },
+        {
+          "vehicleId": 84212,
+          "location": {
+            "longitude": -79.9796274,
+            "latitude": 40.4568478
+          },
+          "heading": "SOUTHEAST",
+          "number": "S618"
+        }
+      ]
+    };
+
+    /* end vehicle json structure */
+
+    var alkMap;
+    var vehicleLayer;
+
+    function loadMap() {
+      initMap();
+      plotVehicles();
+      centerOnVehicles();
+    }
+
+    var initMap = function() {
+      ALKMaps.APIKey = 'CC87143E1602274A804BEF2AD8D24653';
+      alkMap = new ALKMaps.Map('alkmap', {
+        displayProjection: new ALKMaps.Projection('EPSG:4326'),
+        sphericalMercator: true
+      });
+      var layer = new ALKMaps.Layer.BaseMap("ALK Maps", {}, {displayInLayerSwitcher: false});
+      alkMap.addLayer(layer);
+
+      var headings = {
+        'NORTH': 270,
+        'NORTHEAST': 315,
+        'EAST': 0,
+        'SOUTHEAST': 45,
+        'SOUTH': 90,
+        'SOUTHWEST': 135,
+        'WEST': 180,
+        'NORTHWEST': 225
+      };
+
+      //Define styles for normal and clustered points
+      var vehiclePointStyle = new ALKMaps.Style({
+        strokeColor: '#116666',
+        pointRadius: '8',
+        strokeWidth: 1,
+        fillColor: '${fill}',
+        fontSize: '11px',
+        fontColor: '#116666',
+        label: '${label}',
+        graphicName: 'truck',
+        graphicYOffset: -10,
+        rotation: '${heading}',
+        labelYOffset: '-12',
+        fillOpacity: 0.7,
+        cursor: 'hand'
+      }, {
+        context: {
+          fill: function () {
+            return '#66AAAA';
+          },
+          heading: function (feature) {
+            return headings[feature.attributes.heading];
+          },
+          label: function (feature) {
+            return feature.attributes.number;
+          }
+        }
+      });
+
+      vehicleLayer = new ALKMaps.Layer.Vector('Vehicle Layer', {
+        styleMap: new ALKMaps.StyleMap({
+          default: vehiclePointStyle,
+          select: vehiclePointStyle
+        })
+      });
+      alkMap.addLayer(vehicleLayer);
+
+    };
+
+    var plotVehicles = function() {
+      var vehicles = vehicleData.records;
+      var vehicleFeatures = [];
+      for (var i=0; i < vehicles.length; i++) {
+        var vehicle = vehicles[i];
+        //throw out likely bad data
+        if(Math.abs(vehicle.location.longitude) > 0.1 && Math.abs(vehicle.location.latitude) > 0.1) {
+          var longlat = new ALKMaps.LonLat(vehicle.location.longitude, vehicle.location.latitude);
+          longlat.transform(new ALKMaps.Projection('EPSG:4326'), alkMap.getProjectionObject());
+          var pointFeature = new ALKMaps.Feature.Vector(
+            new ALKMaps.Geometry.Point(longlat.lon, longlat.lat)
+          );
+          vehicle.cluster = false;
+          pointFeature.attributes = vehicle;
+          vehicleFeatures.push(pointFeature);
+        }
+      }
+      vehicleLayer.addFeatures(vehicleFeatures);
+    };
+
+    var centerOnVehicles = function() {
+      var extent = vehicleLayer.getDataExtent();
+      alkMap.zoomToExtent(extent,false);
+      alkMap.zoomTo(alkMap.getZoom() - 1);
+    };
+
+    var removeVehicles = function() {
+      vehicleLayer.removeAllFeatures();
+    }
+
+  </script>
+</head>
+<body onload="loadMap()">
+  <div id="alkmap"></div>
+  <div id="button">
+    <a class="btn" href="javascript:removeVehicles();">Remove Vehicles</a>
+    <a class="btn" href="javascript:plotVehicles();">Plot Vehicles</a>
+    <p>Pure Simple Javascript. Press 'Remove Vehicles'. Zoom. Vehicles stay deleted.</p>
+  </div>
+</body>
+</html>
